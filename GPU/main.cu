@@ -1,7 +1,7 @@
 // PAZAM: A CUDA Music Identification Tool
 // Michael Wilner - Cody Van Etten - Ahmed Suhyl
 // ...
-// Naive CPU Implementation based on Tyler Simon's WAV FFT Tool
+// GPU Accelerated Version
 
 #include <stdio.h>
 #include <math.h>
@@ -140,48 +140,28 @@ int generatehashes(char *input_file, int mysongid, int * hash_songs)
 
   float *in_h;
   float *in_d;
-  int * out_h, * out_d;
   cudaError_t cuda_ret;
   dim3 dim_grid, dim_block;
   in_h = G;
-  out_h = (int *) malloc(sizeof(int) * sectcnt); //list of keys
   cuda_ret = cudaMalloc((void**)&in_d, sectcnt * N * sizeof(float));
   if(cuda_ret != cudaSuccess) FATAL("Unable to allocate input device memory");
-  cuda_ret = cudaMalloc((void**)&out_d, sectcnt*sizeof(int));
-  if(cuda_ret != cudaSuccess) FATAL("Unable to allocate output device memory");
   cudaDeviceSynchronize();
   cuda_ret = cudaMemcpy(in_d, in_h, sectcnt * N * sizeof(float),cudaMemcpyHostToDevice);
   if(cuda_ret != cudaSuccess) FATAL("Unable to copy input audio to device");
   cudaDeviceSynchronize();
+  /* Launch the song process kernel */
   dim_block.x = BLOCK_SIZE; dim_block.y = dim_block.z = 1;
   dim_grid.x = (sectcnt - 1)/THREADS_PER_BLOCK + 1; dim_grid.y = dim_grid.z = 1;
-  parallelhash<<<dim_grid, dim_block>>>(in_d, out_d, sectcnt, hash_songs, mysongid);
+  parallelhash<<<dim_grid, dim_block>>>(in_d, sectcnt, hash_songs, mysongid);
   cuda_ret = cudaDeviceSynchronize();
-  if(cuda_ret != cudaSuccess) FATAL("Kernel 1 failed");
-  cuda_ret = cudaMemcpy(out_h, out_d, sectcnt*sizeof(int), cudaMemcpyDeviceToHost);
-  if(cuda_ret != cudaSuccess) FATAL("Unable to copy output to host");
-  cudaDeviceSynchronize();
-  cudaFree(in_d); cudaFree(out_d);
+  if(cuda_ret != cudaSuccess) FATAL("Kernel failed");
+  cudaFree(in_d);
 
-  /*for(i=0; i<sectcnt; i++)
-  {
-      int key = out_h[i];
-      int n = 0;
-      for (n = 0 ; n < MAXCOLS; n++)
-      {
-        if(hashtable[key][n]==0)
-        {
-          hashtable[key][n] = mysongid;
-          numhashes++;
-          break;
-        }
-      }
-  } // end i<csize loop */
   fclose(inp);  
   free(G);
   free(out_h);
 
-  return csize>>6;
+  return csize>>6; //Since we can't count the hashes directly, we just use the song length
 }
 
 
@@ -200,7 +180,7 @@ int main(int argc, char * argv[])
   int msec;
   int * hash_songs;
 
-  printf("pazam_gpu.c running \n");
+  printf("GPU Pazam running... \n");
   if(argc<2)
   {
     printf("no excerpt file to open \n");
@@ -229,7 +209,7 @@ int main(int argc, char * argv[])
           filesizes[numsongs] = generatehashes(file.path, numsongs, hash_songs);
           diff = clock() - start;
           msec = diff * 1000 / CLOCKS_PER_SEC;
-          printf("%d:%d hashes for %s\n", numsongs, filesizes[numsongs], file.path);
+          printf("%d:%d length for %s\n", numsongs, filesizes[numsongs], file.path);
           printf("Time taken: %d seconds %d milliseconds\n", msec/1000, msec%1000);
           strcpy(filenames[numsongs],file.name);
       }
@@ -251,7 +231,7 @@ int main(int argc, char * argv[])
   dim_grid.x = (MAXELEMS - 1)/THREADS_PER_BLOCK + 1; dim_grid.y = dim_grid.z = 1;
   calc_scores<<<dim_grid, dim_block>>>(hash_songs, songscores_d);
   cuda_ret = cudaDeviceSynchronize();
-  if(cuda_ret != cudaSuccess) FATAL("Kernel 1 failed");
+  if(cuda_ret != cudaSuccess) FATAL("Kernel failed");
   cuda_ret = cudaMemcpy(songscores, songscores_d, (MAXSONGS+1)*sizeof(int), cudaMemcpyDeviceToHost);
   if(cuda_ret != cudaSuccess) FATAL("Unable to copy output to host");
   cudaDeviceSynchronize();
@@ -271,13 +251,5 @@ int main(int argc, char * argv[])
   msec = diff_total * 1000 / CLOCKS_PER_SEC;
   printf("Total time taken: %d seconds %d milliseconds\n", msec/1000, msec%1000);
 
-  /*for(i =0; i < MAXELEMS; i++)
-  {
-    free(hashtable[i]);
-  }
-  free(hashtable);*/
-
-  /*if(argc<3) printf("fft1_wave done. new fingerprint.txt file written \n");
-  else  printf("fft1_wave done. new %s file written \n", argv[2]);*/
     return 0;
-} /* end fft1_wave .c */
+}

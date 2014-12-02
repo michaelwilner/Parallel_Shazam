@@ -1,5 +1,7 @@
 // PAZAM: A CUDA Music Identification Tool
 // Michael Wilner - Cody Van Etten - Ahmed Suhyl
+// ...
+// CPU Version
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -147,41 +149,23 @@ int generatehashes(char *input_file, int** hashtable, int mysongid)
       i-=BYTES_PER_SAMPLE;
       sectcnt++;
       /* transform */
-      float * oldZ = Z;
-      Z=fft_cooley_tukey(oldZ,N);
-      free(oldZ);
-      //four1(Z,N);
+      //float * oldZ = Z;
+      //Z=fft_cooley_tukey(oldZ,N);
+      //free(oldZ);
+      four1(Z,N);
+
+      /* Filter Frequency bands */
       freq1 = freq2 = freq3 = freq4 = freq5 = 0;
       pt1 = pt2 = pt3 = pt4 = pt5 = 0;
 
-      for(k=0; k<N; k++){
+      for(k=FREQBANDWIDTH; k<FREQBANDWIDTH*6; k++){
         tempfreq = (Z[2*k] > 0) ? (int)Z[2*k] : (int)(0-Z[2*k]);
         magnitude = (int)(log10((double)(tempfreq+1)) * 1000);
-        if(k>=FREQBANDWIDTH && k<FREQBANDWIDTH*2 && magnitude>freq1) 
-          {
-            freq1 = magnitude; 
-            pt1=k;
-          }
-        else if(k>=FREQBANDWIDTH*2 && k<FREQBANDWIDTH*3 && magnitude>freq2) 
-          {
-            freq2 = magnitude; 
-            pt2=k;
-          }
-        else if(k>=FREQBANDWIDTH*3 && k<FREQBANDWIDTH*4 && magnitude>freq3) 
-          {
-            freq3 = magnitude; 
-            pt3=k;
-          }
-        else if(k>=FREQBANDWIDTH*4 && k<FREQBANDWIDTH*5 && magnitude>freq4) 
-          {
-            freq4 = magnitude; 
-            pt4=k;
-          }
-        else if(k>=FREQBANDWIDTH*5 && k<FREQBANDWIDTH*6 && magnitude>freq5) 
-          {
-            freq5 = magnitude; 
-            pt5=k;
-          }
+        if(k>=FREQBANDWIDTH && k<FREQBANDWIDTH*2 && magnitude>freq1) {freq1 = magnitude; pt1=k;}
+        else if(k>=FREQBANDWIDTH*2 && k<FREQBANDWIDTH*3 && magnitude>freq2) {freq2 = magnitude; pt2=k;}
+        else if(k>=FREQBANDWIDTH*3 && k<FREQBANDWIDTH*4 && magnitude>freq3) {freq3 = magnitude; pt3=k;}
+        else if(k>=FREQBANDWIDTH*4 && k<FREQBANDWIDTH*5 && magnitude>freq4) {freq4 = magnitude; pt4=k;}
+        else if(k>=FREQBANDWIDTH*5 && k<FREQBANDWIDTH*6 && magnitude>freq5) {freq5 = magnitude; pt5=k;}
       }
       char buffer [50];
       sprintf (buffer, "%d%d%d%d%d", pt1,pt2,pt3,pt4,pt5);
@@ -189,10 +173,8 @@ int generatehashes(char *input_file, int** hashtable, int mysongid)
       int key = (int) hashresult;
       //printf ("key:%lu ",key);
       //printf("value:%d\n",sectcnt);
-      if (key < 0)
-        printf("Invalid key %d\n", key);
+      if (key < 0) printf("Invalid key %d\n", key);
 
-      int n = 0;
       hashtable[key][mysongid]++;
       numhashes++;
       
@@ -220,7 +202,7 @@ int main(int argc, char * argv[])
   clock_t start_total, diff_total;
   int msec;
 
-  printf("pazam_cpu.c running \n");
+  printf("CPU Pazam running... \n");
   if(argc<2)
   {
     printf("no excerpt file to open \n");
@@ -229,16 +211,7 @@ int main(int argc, char * argv[])
   start_total = clock();
   
   hashtable = (int **) calloc (MAXELEMS, sizeof(int *));
-  for(i =0; i < MAXELEMS; i++)
-  {
-    hashtable[i] = (int *) calloc (MAXSONGS+1, sizeof(int));
-  }
-
-/*for(i = 0; i < MAXELEMS; i++)
-{
-  hashtable[i] = 0;
-  excerpt[i] = 0;
-}*/
+  for(i =0; i < MAXELEMS; i++) hashtable[i] = (int *) calloc (MAXSONGS+1, sizeof(int));
 
   printf("Generating hashes for original files.. \n");
   tinydir_dir dir;
@@ -297,11 +270,9 @@ int main(int argc, char * argv[])
   }
   printf("Best Score: %s\n", filenames[n]);
 
-  for(i =0; i < MAXELEMS; i++)
-  {
-    free(hashtable[i]);
-  }
+  for(i =0; i < MAXELEMS; i++) free(hashtable[i]);
   free(hashtable);
+
   diff_total = clock() - start_total;
   msec = diff_total * 1000 / CLOCKS_PER_SEC;
   printf("Total time taken: %d seconds %d milliseconds\n", msec/1000, msec%1000);
