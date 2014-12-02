@@ -149,10 +149,9 @@ int generatehashes(char *input_file, int** hashtable, int mysongid)
       i-=BYTES_PER_SAMPLE;
       sectcnt++;
       /* transform */
-      //float * oldZ = Z;
-      //Z=fft_cooley_tukey(oldZ,N);
-      //free(oldZ);
-      four1(Z,N);
+      float * oldZ = Z;
+      Z=fft_cooley_tukey(oldZ,N);
+      free(oldZ);
 
       /* Filter Frequency bands */
       freq1 = freq2 = freq3 = freq4 = freq5 = 0;

@@ -1,7 +1,7 @@
 NVCC        = nvcc
 NVCC_FLAGS  = -O3 -I/usr/local/cuda/include -arch sm_20
 LD_FLAGS    = -lcudart -L/usr/local/cuda/lib64
-EXE	        = four1
+EXE	        = pazam_gpu
 OBJ	        = main.o 
 
 default: $(EXE)

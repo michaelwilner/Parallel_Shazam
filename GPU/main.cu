@@ -159,7 +159,6 @@ int generatehashes(char *input_file, int mysongid, int * hash_songs)
 
   fclose(inp);  
   free(G);
-  free(out_h);
 
   return csize>>6; //Since we can't count the hashes directly, we just use the song length
 }
