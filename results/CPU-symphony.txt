@@ -1,0 +1,21 @@
+CPU Pazam running... 
+Generating hashes for original files.. 
+1:8871 hashes for ../data/coloris.wav
+Time taken: 9 seconds 990 milliseconds
+2:3431 hashes for ../data/ttatr.wav
+Time taken: 3 seconds 860 milliseconds
+3:4935 hashes for ../data/heroesandmartyrs.wav
+Time taken: 5 seconds 560 milliseconds
+4:4678 hashes for ../data/symphony.wav
+Time taken: 5 seconds 250 milliseconds
+5:4967 hashes for ../data/prehibernation.wav
+Time taken: 5 seconds 600 milliseconds
+Generating hashes for recorded file.. 
+Calculating score.. 
+Score for coloris.wav = 0.093789
+Score for ttatr.wav = 0.106674
+Score for heroesandmartyrs.wav = 0.141641
+Score for symphony.wav = 0.175289
+Score for prehibernation.wav = 0.092410
+Best Score: symphony.wav
+Total time taken: 33 seconds 180 milliseconds
